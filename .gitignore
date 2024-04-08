@@ -1,1 +1,42 @@
+# Archivos generados por Visual Studio
 .vs/
+bin/
+obj/
+
+# Carpeta de paquetes NuGet
+packages/
+
+# Archivos de compilación
+*.dll
+*.pdb
+*.exe
+*.zip
+*.nupkg
+
+# Logs y archivos temporales
+*.log
+*.swp
+*~
+
+# Archivos de usuario y configuración
+*.user
+*.suo
+*.sln.docstates
+
+# Carpetas de resguardo de IIS Express
+IISExpress/
+
+# Carpeta de análisis de rendimiento
+PerfLogs/
+
+# Carpeta de publicación de Visual Studio
+_PublishedWebsites/
+
+# Carpeta de caché de ReSharper
+resharper/
+
+# Archivo de configuración local de la base de datos
+*.dbmdl
+
+# Carpetas de Node.js
+node_modules/
