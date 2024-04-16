@@ -2,17 +2,19 @@
 using GraphQL.Client.Http;
 using GraphQL;
 using System.Text;
-using System.Reflection;
 
-namespace PpsGraphQLConnector
+namespace GraphQLRepository
 {
     public class GraphQLClientRepository<T> : IGraphQLRepository<T>
     {
         public string url { get; set; }
 
-        public GraphQLClientRepository(string url)
+        public GraphQLQueryBuilder graphQLQueryBuilder { get; set; }    
+
+        public GraphQLClientRepository(string url, GraphQLQueryBuilder graphQLQueryBuilder)
         {
             this.url = url;
+            this.graphQLQueryBuilder = graphQLQueryBuilder;
         }
 
         public async Task<GraphQLResponse<T>> FindAll()
@@ -22,8 +24,9 @@ namespace PpsGraphQLConnector
 
             Type classType = typeof(T);
             StringBuilder query = new StringBuilder();
+            var param = new Dictionary<string, List<string>>();
             query.Append("query { ");
-            query.Append(BuildGraphQLQuery(classType));
+            query.Append(graphQLQueryBuilder.Build(classType, param));
             query.Append(" }");
 
             var request = new GraphQLRequest
@@ -35,9 +38,27 @@ namespace PpsGraphQLConnector
         }
 
         public async Task<GraphQLResponse<T>> FindById(string id)
-        {   
-            //TODO Implementar findbyid
-            throw new NotImplementedException();
+        {
+            var url = new Uri(this.url);
+            var graphqlHttpClient = new GraphQLHttpClient(url, new NewtonsoftJsonSerializer());
+
+            Type classType = typeof(T);
+            StringBuilder query = new StringBuilder();
+            var param = new Dictionary<string, List<string>>
+            {
+                { "id", new List<string>() { id } }
+            };
+            query.Append("query { ");
+            query.Append(graphQLQueryBuilder.Build(classType, param));
+            query.Append(" }");
+
+            var request = new GraphQLRequest
+            {
+                Query = query.ToString()
+            };
+            Console.WriteLine(query.ToString());
+            var response = await graphqlHttpClient.SendQueryAsync<T>(request);
+            return response;
         }
 
         public async Task<GraphQLResponse<T>> FindByParameters(Dictionary<string, List<string>> parameters)
@@ -48,58 +69,16 @@ namespace PpsGraphQLConnector
             Type classType = typeof(T);
             StringBuilder query = new StringBuilder();
             query.Append("query { ");
-            query.Append(BuildGraphQLQuery(classType));
+            query.Append(graphQLQueryBuilder.Build(classType, parameters));
             query.Append(" }");
 
-            var query1 = @"
-            query ($name: String) {
-                characters(page: 2, filter: { name: $name }) {
-                    info {
-                      count,
-                      pages
-                    }
-                    results {
-                      name
-                    }
-                  }
-            }
-        ";
-  
-            var variables = new { name = "rick" };
             var request = new GraphQLRequest
             {
-                Query = query.ToString(),
-                Variables = variables
+                Query = query.ToString()
             };
+            Console.WriteLine(query.ToString());
             var response = await graphqlHttpClient.SendQueryAsync<T>(request);
             return response;
-        }
-
-        private string BuildGraphQLQuery(object objeto)
-        {
-            StringBuilder queryBuilder = new StringBuilder();
-            Type tipo = (Type)objeto;
-            foreach (var campo in tipo.GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-            {
-                queryBuilder.Append($"{campo.Name.ToLower()}\n ");
-
-                //TODO Probar con Listas de datos primitivos
-                if (campo.FieldType.IsGenericType && campo.FieldType.GetGenericTypeDefinition() == typeof(List<>))
-                {
-                    Type tipoClaseLista = campo.FieldType.GetGenericArguments()[0];
-                    queryBuilder.Append("{ ");
-                    queryBuilder.Append(BuildGraphQLQuery(tipoClaseLista));
-                    queryBuilder.Append("} ");
-                }
-                else if (campo.FieldType.IsClass && campo.FieldType != typeof(string))
-                {
-                    Type valorCampo = campo.FieldType;
-                    queryBuilder.Append("{ ");
-                    queryBuilder.Append(BuildGraphQLQuery(valorCampo));
-                    queryBuilder.Append("} ");
-                }
-            }
-            return queryBuilder.ToString();
         }
 
     }

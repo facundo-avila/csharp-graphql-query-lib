@@ -1,6 +1,6 @@
 ﻿using GraphQL;
 
-namespace PpsGraphQLConnector
+namespace GraphQLRepository
 {
     internal interface IGraphQLRepository<T>
     {
